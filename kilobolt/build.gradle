@@ -1,4 +1,5 @@
 apply plugin: 'android'
+apply plugin: 'robolectric'
 
 android {
     compileSdkVersion 19
@@ -23,7 +24,42 @@ android {
     }
 }
 
+// The following makes Android Studio treat /src/main/test as a source directory
+// Big thanks to Ikka Laukkanen and Bernd Bergler:
+// http://blog.futurice.com/android_unit_testing_in_ides_and_ci_environments
+// https://groups.google.com/forum/?hl=en#!msg/adt-dev/v0AluPBcoy0/KXR7oOmRQZIJ
+task addTest {
+    def src = ['src/test/java']
+    def file = file("kilobolt.iml")
+
+    doLast {
+        try {
+            def parsedXml = (new XmlParser()).parse(file)
+            def node = parsedXml.component[1].content[0]
+            src.each {
+                def path = 'file://$MODULE_DIR$/' + "${it}"
+                def set = node.find { it.@url == path }
+                if (set == null) {
+                    new Node(node, 'sourceFolder', ['url': 'file://$MODULE_DIR$/' + "${it}", 'isTestSource': "true"])
+                    def writer = new StringWriter()
+                    new XmlNodePrinter(new PrintWriter(writer)).print(parsedXml)
+                    file.text = writer.toString()
+                }
+            }
+        } catch (FileNotFoundException e) {
+            // nop, iml not found
+        }
+    }
+}
+
+// always do the addtest on prebuild
+gradle.projectsEvaluated {
+    preBuild.dependsOn(addTest)
+}
+
 dependencies {
     compile 'com.android.support:appcompat-v7:+'
     compile fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestCompile 'org.robolectric:robolectric:2.+'
+    androidTestCompile 'junit:junit:4.+'
 }
