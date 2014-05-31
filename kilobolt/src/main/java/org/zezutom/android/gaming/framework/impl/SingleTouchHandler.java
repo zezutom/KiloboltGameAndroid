@@ -29,7 +29,7 @@ public class SingleTouchHandler extends GenericTouchHandler {
 	
 	@Override
 	protected boolean isTouched(int pointer) {
-		return (pointer == 0) ? false : touched;
+		return (pointer <= 0) ? false : touched;
 	}
 	
 	private TouchType getTouchType(MotionEvent event) {
@@ -47,6 +47,8 @@ public class SingleTouchHandler extends GenericTouchHandler {
 				touchType = TouchType.UP;
 				break;
 		}
+
+        touched = (touchType != null);
 
 		return touchType;
 	}
